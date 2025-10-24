@@ -15,34 +15,55 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     permissions:
-       id-token: write
-       contents: read
+      id-token: write
+      contents: read
+
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
           lfs: false
+
+      # (Optional) You don't actually need to install these for SWA deploy,
+      # but keeping since you had them:
       - name: Install OIDC Client from Core Package
         run: npm install @actions/core@1.6.0 @actions/http-client
+
       - name: Get Id Token
         uses: actions/github-script@v6
         id: idtoken
         with:
-           script: |
-               const coredemo = require('@actions/core')
-               return await coredemo.getIDToken()
-           result-encoding: string
+          script: |
+            const coredemo = require('@actions/core')
+            return await coredemo.getIDToken()
+          result-encoding: string
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_MANGO_FLOWER_0A2F7681E }}
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "." # Built app content directory - optional
+
+          ###### Repository/Build Configurations ######
+          # Root of your static files (index.html, assets, etc.)
+          app_location: "/"
+
+          # No Functions API in this repo
+          api_location: ""
+
+          # Since we’re skipping builds, this should be the same as app_location (the folder to upload)
+          output_location: "/"
+
+          # Force Oryx to skip building (prevents the 'no build script' error)
+          skip_app_build: true
+          skip_api_build: true
+
+          # (Optional) explicitly set production branch and environment name
+          production_branch: "main"
+          deployment_environment: "production"
+
+          # Pass OIDC token through (only needed if you’re using it downstream)
           github_id_token: ${{ steps.idtoken.outputs.result }}
           ###### End of Repository/Build Configurations ######
 
